@@ -1,0 +1,24 @@
+# Environment variables (contains sensitive credentials)
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Playwright
+test-results/
+playwright-report/
+auth-state-*.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

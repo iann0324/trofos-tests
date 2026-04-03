@@ -1,0 +1,37 @@
+{
+  "name": "trofos-playwright-tests",
+  "version": "1.0.0",
+  "description": "Playwright e2e tests for Trofos",
+  "scripts": {
+    "test": "playwright test",
+    "test:all": "playwright test --grep-invert \"\\[Logout\\]\"",
+    "test:all:with-logout": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:dashboard": "playwright test tests/1-dashboard.spec.ts",
+    "test:navigation": "playwright test tests/2-navigation.spec.ts",
+    "test:sprints": "playwright test tests/3-sprints.spec.ts",
+    "test:board": "playwright test tests/4-board.spec.ts",
+    "test:issues": "playwright test tests/5-issues.spec.ts",
+    "test:standup": "playwright test tests/6-standup.spec.ts",
+    "test:feedback": "playwright test tests/7-feedback.spec.ts",
+    "test:milestones": "playwright test tests/8-milestones.spec.ts",
+    "test:users": "playwright test tests/9-users.spec.ts",
+    "test:admin": "playwright test tests/10-admin.spec.ts",
+    "test:logout": "playwright test tests/11-logout.spec.ts",
+    "test:demo": "playwright test -c playwright.showcase-all.config.ts --grep-invert \"\\[Logout\\]\" --headed",
+    "test:demo:with-logout": "playwright test -c playwright.showcase-all.config.ts --headed",
+    "test:demo:flow": "playwright test -c playwright.showcase.config.ts",
+    "test:demo:flow:headed": "playwright test -c playwright.showcase.config.ts --headed",
+    "test:showcase:all": "playwright test -c playwright.showcase-all.config.ts --grep-invert \"\\[Logout\\]\" --headed",
+    "test:showcase:all:with-logout": "playwright test -c playwright.showcase-all.config.ts --headed",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.0",
+    "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "dotenv": "^17.3.1"
+  }
+}
