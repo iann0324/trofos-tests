@@ -8,8 +8,29 @@ import { test, expect, type Page } from '@playwright/test';
 const dashboardTest = test.extend<{ authenticatedPage: Page }>({
   authenticatedPage: async ({ page }, use) => {
     // Page is already authenticated via storageState from auth.setup.ts
-    // Just navigate to home and use it
-    await page.goto('https://trofos-production.comp.nus.edu.sg/');
+    // Navigate with retry — under parallel CI load we may briefly land on the public page
+    const maxRetries = 5;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      await page.goto('https://trofos-production.comp.nus.edu.sg/', {
+        waitUntil: 'domcontentloaded',
+        timeout: 30000,
+      });
+      await page.waitForTimeout(1500);
+
+      const homeMenu = page.getByRole('menuitem', { name: /home/i }).first();
+      const isAuthenticated = await homeMenu.isVisible().catch(() => false);
+      if (isAuthenticated) {
+        break;
+      }
+
+      if (attempt < maxRetries) {
+        await page.reload({ waitUntil: 'domcontentloaded', timeout: 30000 });
+        await page.waitForTimeout(2000);
+      } else {
+        await homeMenu.waitFor({ state: 'visible', timeout: 15000 });
+      }
+    }
+
     await use(page);
   },
 });

@@ -5,8 +5,14 @@ import { Page } from '@playwright/test';
  * Call this at the start of every test that requires authentication.
  */
 export async function loginAsTestUser(page: Page): Promise<void> {
-  const email = process.env.TEST_EMAIL!;
-  const password = process.env.TEST_PASSWORD!;
+  const email = process.env.TEST_EMAIL;
+  const password = process.env.TEST_PASSWORD;
+
+  if (!email || !password) {
+    throw new Error(
+      'Missing TEST_EMAIL or TEST_PASSWORD. Set these in .env locally and in GitHub Actions repository secrets for CI.'
+    );
+  }
 
   await page.goto('https://trofos-production.comp.nus.edu.sg/');
   await page.waitForLoadState('domcontentloaded');
@@ -33,6 +39,9 @@ export async function loginAsTestUser(page: Page): Promise<void> {
   if (await closeButton.isVisible({ timeout: 5000 }).catch(() => false)) {
     await closeButton.click();
   }
+
+  // Ensure we are truly authenticated before auth.setup.ts stores storageState
+  await page.getByRole('menuitem', { name: /home/i }).first().waitFor({ state: 'visible', timeout: 15000 });
 }
 
 /**
