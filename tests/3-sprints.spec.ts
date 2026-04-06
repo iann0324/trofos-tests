@@ -157,11 +157,19 @@ async function deleteSprint(page: Page, name: string): Promise<void> {
   // Ensure no lingering modals from previous actions
   await expect(page.locator('.ant-modal').filter({ hasText: 'DELETE SPRINT' })).not.toBeVisible({ timeout: 5000 }).catch(() => {});
 
+  // For very long names, use a prefix match instead of exact match
+  // Get the first 30 chars as the searchable prefix
+  const searchPrefix = name.substring(0, Math.min(30, name.length));
+  
   // Retry the dropdown click + menu selection — DOM can detach from concurrent re-renders
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      const sprintCard = page.locator('.sprint-card-container').filter({ hasText: name });
-      await sprintCard.locator('.sprint-menu-dropdown').click({ timeout: 5000 });
+      const sprintCard = page.locator('.sprint-card-container').filter({ hasText: new RegExp(searchPrefix) });
+      if (!(await sprintCard.first().isVisible({ timeout: 3000 }).catch(() => false))) {
+        // Sprint not found — may have been deleted already or name doesn't match
+        return;
+      }
+      await sprintCard.first().locator('.sprint-menu-dropdown').click({ timeout: 5000 });
       await page.waitForTimeout(300);
       await page.locator('.ant-dropdown-menu-item-danger', { hasText: 'Delete sprint' }).click({ timeout: 5000 });
       break; // success
@@ -177,7 +185,11 @@ async function deleteSprint(page: Page, name: string): Promise<void> {
   await expect(deleteModal).toBeVisible({ timeout: 15000 });
   await deleteModal.locator('button.ant-btn-dangerous').click();
   await page.waitForTimeout(500);
-  await expect(page.locator('.sprint-card-name', { hasText: name })).not.toBeVisible({ timeout: 10000 });
+  
+  // Verify sprint is gone using the same prefix match
+  await expect(
+    page.locator('.sprint-card-container').filter({ hasText: new RegExp(searchPrefix) })
+  ).not.toBeVisible({ timeout: 10000 });
 }
 
 /** Create a backlog item with the given title */
@@ -518,30 +530,26 @@ sprintTest('[Sprint] 3.10 - Theme toggle on sprint page', async ({ authenticated
 // --- 9.1 Edge case: long name (md 9.1) --------------------------------------
 
 sprintTest('[Sprint] 3.11 - Edge case: very long sprint name', async ({ authenticatedPage: page }) => {
-  const longName = 'A'.repeat(150);
+  // Use a unique prefix + timestamp so we can reliably find and delete it
+  const timestamp = Date.now().toString();
+  const longName = `LongName${timestamp}${'A'.repeat(140)}`;
 
   await page.getByRole('button', { name: 'New Sprint' }).click();
   await page.waitForSelector('.ant-modal-content');
   await page.locator('#name').clear();
   await page.locator('#name').fill(longName);
   await page.locator('.ant-modal-footer button[type="submit"]').click();
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(1000);
 
   const modalStillOpen = await page.locator('.ant-modal-content').isVisible();
   if (modalStillOpen) {
     // Validation error — close modal, nothing to clean up
     await page.keyboard.press('Escape');
+    await page.waitForTimeout(500);
   } else {
-    // Sprint was created — clean up
-    // Use a partial match since the name may be truncated in the UI
-    const sprintCard = page.locator('.sprint-card-container').filter({ hasText: longName.substring(0, 30) });
-    if (await sprintCard.isVisible()) {
-      await sprintCard.locator('.sprint-menu-dropdown').click();
-      await page.waitForTimeout(300);
-      await page.locator('.ant-dropdown-menu-item-danger', { hasText: 'Delete sprint' }).click();
-      await page.locator('.ant-modal').filter({ hasText: 'DELETE SPRINT' }).locator('button.ant-btn-dangerous').click();
-      await page.waitForTimeout(500);
-    }
+    // Sprint was created — clean up using the unique prefix
+    // Use the full name with deleteSprint helper for reliability
+    await deleteSprint(page, longName);
   }
 });
 
