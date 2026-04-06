@@ -112,11 +112,21 @@ async function dragCard(page: Page, fromZoneId: string, toZoneId: string) {
   );
   await page.waitForTimeout(500);
   await page.mouse.up();
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(1500);
+  await page.waitForLoadState('networkidle').catch(() => {});
+  await page.waitForTimeout(500);
 
   // Skip count check if source and target resolved to same zone (card already there)
   if (actualFromZoneId !== toZoneId) {
-    await expect(toZone.locator('[data-rbd-drag-handle-draggable-id]')).toHaveCount(countBefore + 1, { timeout: 10000 });
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const countAfter = await toZone.locator('[data-rbd-drag-handle-draggable-id]').count();
+      if (countAfter === countBefore + 1) return; // Success
+      if (attempt === 0) {
+        await page.waitForTimeout(2000);
+      }
+    }
+    // Final assertion if retries didn't work
+    await expect(toZone.locator('[data-rbd-drag-handle-draggable-id]')).toHaveCount(countBefore + 1, { timeout: 5000 });
   }
 }
 

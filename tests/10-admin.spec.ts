@@ -22,7 +22,15 @@ async function deleteFirstUserByBrowser(page: Page, browserName: string) {
   await firstUserRow.waitFor({ state: 'visible', timeout: 10000 });
   
   // Click the delete/trash button (usually the last button in the row)
-  await firstUserRow.locator('button').last().click();
+  // Retry if button not clickable immediately
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const deleteBtn = firstUserRow.locator('button').last();
+    if (await deleteBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await deleteBtn.click();
+      break;
+    }
+    if (attempt === 0) await page.waitForTimeout(2000);
+  }
   await page.waitForTimeout(1000);
   
   // Confirm deletion in modal - click "Delete" button

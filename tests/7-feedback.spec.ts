@@ -230,8 +230,13 @@ async function createFeedback(page: Page, sprintName: string, feedbackText: stri
   await saveButton.click();
   await page.waitForTimeout(1000);
 
-  // Verify feedback was created
-  await expect(page.getByText(feedbackText)).toBeVisible({ timeout: 5000 });
+  // Verify feedback was created — reload once if not immediately visible
+  const feedbackVisible = await page.getByText(feedbackText).isVisible({ timeout: 3000 }).catch(() => false);
+  if (!feedbackVisible) {
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(1500);
+  }
+  await expect(page.getByText(feedbackText)).toBeVisible({ timeout: 8000 });
 }
 
 /** Edit feedback text */

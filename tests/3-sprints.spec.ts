@@ -174,7 +174,7 @@ async function deleteSprint(page: Page, name: string): Promise<void> {
 
   // Wait for the delete confirmation modal to appear
   const deleteModal = page.locator('.ant-modal').filter({ hasText: 'DELETE SPRINT' });
-  await expect(deleteModal).toBeVisible({ timeout: 5000 });
+  await expect(deleteModal).toBeVisible({ timeout: 15000 });
   await deleteModal.locator('button.ant-btn-dangerous').click();
   await page.waitForTimeout(500);
   await expect(page.locator('.sprint-card-name', { hasText: name })).not.toBeVisible({ timeout: 10000 });

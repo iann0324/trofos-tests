@@ -122,7 +122,7 @@ const milestoneTest = test.extend<{ authenticatedPage: Page }>({
     const milestoneInput = page.locator(`input[value="${deleteTargetName}"]`);
     await expect(milestoneInput).toBeVisible({ timeout: 15000 });
     const milestoneEntry = milestoneInput.locator('xpath=ancestor::div[.//button[contains(.,"Delete")]]').first();
-    await milestoneEntry.getByRole('button', { name: 'Delete' }).click();
+    await milestoneEntry.locator('button[class*="ant-btn-dangerous"]').first().click();
     await page.waitForTimeout(500);
 
     await expect(page.getByText('Milestone deleted!')).toBeVisible({ timeout: 5000 });
