@@ -75,7 +75,8 @@ const milestoneTest = test.extend<{ authenticatedPage: Page }>({
     await page.getByRole('textbox', { name: '* Milestone Name' }).fill(milestoneName);
 
     // Open the date range picker and select start + end dates
-    await page.locator('.ant-picker').click();
+    // Use specific selector to avoid strict mode violation (existing milestone cards also have .ant-picker)
+    await page.locator('.ant-form-item-control-input-content > .ant-picker').click();
     await page.waitForTimeout(300);
 
     // Pick start date: click the first "1" in the visible calendar
@@ -95,21 +96,35 @@ const milestoneTest = test.extend<{ authenticatedPage: Page }>({
   });
 
   milestoneTest('[Milestones] 8.2 - Delete milestone', async ({ authenticatedPage: page }) => {
-    // Milestone name lives inside a textbox (custom form layout, not a table row)
-    const milestoneInput = page.locator(`input[value="${milestoneName}"]`);
-    // Reload page to ensure server-side data is reflected
+    // Self-contained: create a milestone then delete it.
+    // Cannot rely on 8.1's milestoneName — fullyParallel workers each get their own Date.now() value.
+    const deleteTargetName = `AutoTest Milestone ${Date.now()}`;
+
+    // Create milestone
+    await page.locator('button').filter({ hasText: 'New' }).click();
+    await page.waitForTimeout(500);
+    await page.getByRole('textbox', { name: '* Milestone Name' }).fill(deleteTargetName);
+    await page.locator('.ant-form-item-control-input-content > .ant-picker').click();
+    await page.waitForTimeout(300);
+    await page.locator('.ant-picker-cell-inner').getByText('1', { exact: true }).first().click();
+    await page.waitForTimeout(300);
+    await page.locator('.ant-picker-cell-inner').getByText('28', { exact: true }).last().click();
+    await page.waitForTimeout(300);
+    await page.getByRole('button', { name: 'Finish' }).click();
+    await page.waitForTimeout(1000);
+    await expect(page.getByText(deleteTargetName)).toBeVisible({ timeout: 10000 });
+
+    // Reload to ensure server-side data is reflected
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1000);
-    await expect(milestoneInput).toBeVisible({ timeout: 15000 });
 
-    // The Delete button is inside the same parent container as the textbox
+    // Find and delete
+    const milestoneInput = page.locator(`input[value="${deleteTargetName}"]`);
+    await expect(milestoneInput).toBeVisible({ timeout: 15000 });
     const milestoneEntry = milestoneInput.locator('xpath=ancestor::div[.//button[contains(.,"Delete")]]').first();
     await milestoneEntry.getByRole('button', { name: 'Delete' }).click();
     await page.waitForTimeout(500);
 
-    // Verify success toast
     await expect(page.getByText('Milestone deleted!')).toBeVisible({ timeout: 5000 });
-
-    // Verify milestone input is gone
     await expect(milestoneInput).not.toBeVisible({ timeout: 5000 });
   });

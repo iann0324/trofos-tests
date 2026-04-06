@@ -202,7 +202,13 @@ async function createFeedback(page: Page, sprintName: string, feedbackText: stri
   await navigateToFeedback(page);
 
   // Find and click the sprint feedback section
+  // A newly created sprint may take a moment to appear on the feedback page — reload once if needed
   const sprintButton = page.getByRole('button', { name: new RegExp(sprintName, 'i') });
+  const btnVisible = await sprintButton.isVisible({ timeout: 5000 }).catch(() => false);
+  if (!btnVisible) {
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(1500);
+  }
   await expect(sprintButton).toBeVisible({ timeout: 15000 });
   await sprintButton.click();
   await page.waitForTimeout(500);
@@ -430,12 +436,10 @@ feedbackTest('[Feedback] 7.4 - Create multiple feedback items', async ({ authent
   // Save
   const saveButton = page.locator('button:has-text("Save")').first();
   await saveButton.click();
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(1500);
 
-  // Verify both feedbacks were created by checking for their toast notifications
-  // At least one of the toast messages should appear
-  const toastFound = await page.getByText('Feedback created!').isVisible({ timeout: 3000 }).catch(() => false);
-  expect(toastFound).toBeTruthy();
+  // Verify second feedback is visible (toast disappears too fast in CI — check text instead)
+  await expect(page.getByText(feedback2)).toBeVisible({ timeout: 8000 });
 
   // Cleanup - delete the sprint (which cascades delete feedbacks)
   await deleteSprint(page, sprintName);
