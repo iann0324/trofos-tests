@@ -125,6 +125,13 @@ const milestoneTest = test.extend<{ authenticatedPage: Page }>({
     await milestoneEntry.locator('button[class*="ant-btn-dangerous"]').first().click();
     await page.waitForTimeout(500);
 
+    // Verify toast and then reload to confirm persistence
     await expect(page.getByText('Milestone deleted!')).toBeVisible({ timeout: 5000 });
-    await expect(milestoneInput).not.toBeVisible({ timeout: 5000 });
+    await page.waitForTimeout(1000);
+    
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(1000);
+    
+    // After reload, the milestone should be completely gone
+    await expect(page.getByText(deleteTargetName)).toHaveCount(0, { timeout: 10000 });
   });

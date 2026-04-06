@@ -8,15 +8,14 @@ export default defineConfig({
   testDir: './tests',
   // Run auth setup first, then other tests
   webServer: undefined,
-  // Run each test file in parallel; tests within a file run serially by default
-  fullyParallel: true,
+  // This suite hits a shared remote app, so keep execution serialized for stability
+  fullyParallel: false,
   // Fail the build on CI if test.only was accidentally committed
   forbidOnly: !!process.env.CI,
   // Retry once on CI to absorb flakiness from server load; no retries locally
   retries: process.env.CI ? 1 : 0,
-  // Limit parallel workers — CI uses 2 to avoid overloading the remote server;
-  // locally uses 1 (serial) so tests never conflict with each other
-  workers: process.env.CI ? 2 : 1,
+  // Use a single worker because the remote Trofos environment is stateful
+  workers: 1,
   // Increase timeout to 180 seconds for delete user test with backend polling (WebKit needs more time)
   timeout: 180_000,
   reporter: [['html', { open: 'never' }], ['list']],
