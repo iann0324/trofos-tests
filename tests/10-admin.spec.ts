@@ -163,8 +163,27 @@ async function gotoAdmin(page: Page) {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1000);
     
-    // Delete the first user matching this browser pattern
-    await deleteFirstUserByBrowser(page, browserName);
+    // Delete the *specific* user that was just created
+    const searchBox = page.getByRole('textbox', { name: 'Search User by ID, Name, Email' });
+    await searchBox.click();
+    await searchBox.clear();
+    await searchBox.fill(email);
+    await page.waitForTimeout(2000);
+    
+    const userRow = page.locator('table tbody tr').first();
+    await userRow.waitFor({ state: 'visible', timeout: 10000 });
+    
+    const deleteBtn = userRow.locator('button').last();
+    await deleteBtn.click();
+    await page.waitForTimeout(1000);
+    
+    // Confirm deletion in modal
+    await page.getByRole('button', { name: 'Delete', exact: true }).waitFor({ state: 'visible', timeout: 5000 });
+    await page.getByRole('button', { name: 'Delete', exact: true }).click();
+    await page.waitForTimeout(1500);
+    
+    // Verify success message
+    await expect(page.getByText(/User deleted successfully|deleted/i)).toBeVisible({ timeout: 8000 });
   });
 
   test('[Admin] 10.3 - Search user works', async ({ page }) => {
