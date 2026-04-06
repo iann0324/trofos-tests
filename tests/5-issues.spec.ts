@@ -135,7 +135,10 @@ issueTest('[Issues] 5.3 - Update comment on issue', async ({ authenticatedPage: 
   await page.getByRole('button', { name: 'View' }).first().click();
   await page.waitForTimeout(500);
 
-  // Open comment context menu → Edit
+  // Hover over the comment to reveal the hidden menu icon, then click it
+  const commentItem = page.locator('.ant-list-item').first();
+  await commentItem.hover();
+  await page.waitForTimeout(500);
   await page.locator('.anticon.anticon-menu').first().click();
   await page.getByRole('menuitem', { name: 'Edit' }).click();
 

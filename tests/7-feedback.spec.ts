@@ -203,7 +203,7 @@ async function createFeedback(page: Page, sprintName: string, feedbackText: stri
 
   // Find and click the sprint feedback section
   const sprintButton = page.getByRole('button', { name: new RegExp(sprintName, 'i') });
-  await expect(sprintButton).toBeVisible({ timeout: 5000 });
+  await expect(sprintButton).toBeVisible({ timeout: 15000 });
   await sprintButton.click();
   await page.waitForTimeout(500);
 

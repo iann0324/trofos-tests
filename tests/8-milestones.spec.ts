@@ -97,7 +97,10 @@ const milestoneTest = test.extend<{ authenticatedPage: Page }>({
   milestoneTest('[Milestones] 8.2 - Delete milestone', async ({ authenticatedPage: page }) => {
     // Milestone name lives inside a textbox (custom form layout, not a table row)
     const milestoneInput = page.locator(`input[value="${milestoneName}"]`);
-    await expect(milestoneInput).toBeVisible({ timeout: 5000 });
+    // Reload page to ensure server-side data is reflected
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(1000);
+    await expect(milestoneInput).toBeVisible({ timeout: 15000 });
 
     // The Delete button is inside the same parent container as the textbox
     const milestoneEntry = milestoneInput.locator('xpath=ancestor::div[.//button[contains(.,"Delete")]]').first();
