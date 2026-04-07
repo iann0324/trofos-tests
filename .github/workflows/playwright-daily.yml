@@ -6,8 +6,8 @@ on:
   pull_request:
     branches: ['**']
   schedule:
-    # Runs every day at 00:00 UTC (08:00 SGT)
-    - cron: '0 0 * * *'
+    # Runs every day at 19:00 UTC (03:00 SGT next day) - reduces queue delays
+    - cron: '0 19 * * *'
   # Allows manual trigger from the "Actions" tab in GitHub
   workflow_dispatch:
 

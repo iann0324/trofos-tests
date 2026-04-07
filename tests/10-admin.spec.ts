@@ -148,11 +148,11 @@ async function gotoAdmin(page: Page) {
     await gotoAdmin(page);
     await page.getByRole('tab', { name: 'User Management' }).click();
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
     
-    // Create a user first (for testing purposes, but we'll delete an existing one)
+    // Create a user
     await page.getByRole('button', { name: 'Create User' }).click();
-    await page.waitForTimeout(800);
+    await page.waitForTimeout(1000);
     
     const email = `testdelete${Date.now()}_${browserName}@gmail.com`;
     await page.getByRole('textbox', { name: '* User Email' }).fill(email);
@@ -161,32 +161,31 @@ async function gotoAdmin(page: Page) {
     
     await page.getByRole('button', { name: 'Create', exact: true }).click();
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(2000);
     
-    // Delete the *specific* user that was just created
+    // Reload page to ensure table data is fresh
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(1500);
+    
+    // Search for the user by email
     const searchBox = page.getByRole('textbox', { name: 'Search User by ID, Name, Email' });
     await searchBox.click();
     await searchBox.clear();
     await searchBox.fill(email);
     await page.waitForTimeout(3000);
     
-    // Wait for table row to appear AND be stable
-    const userRow = page.locator('table tbody tr').first();
-    await userRow.waitFor({ state: 'visible', timeout: 15000 });
-    await page.waitForTimeout(1000); // Extra wait for button to be ready
+    // Find and click delete button for the email row
+    const deleteBtn = page.locator('table tbody tr').filter({ hasText: email }).locator('button').last();
+    await deleteBtn.waitFor({ state: 'visible', timeout: 10000 });
     
-    // Ensure delete button is visible and clickable before clicking
-    const deleteBtn = userRow.locator('button').last();
-    await deleteBtn.waitFor({ state: 'visible', timeout: 15000 });
-    
-    // Retry click if needed (for slow CI runners)
+    // Retry click logic for slow CI runners
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         await deleteBtn.click({ timeout: 5000 });
         break;
       } catch (e) {
         if (attempt < 2) {
-          await page.waitForTimeout(2000);
+          await page.waitForTimeout(1500);
         } else {
           throw e;
         }
