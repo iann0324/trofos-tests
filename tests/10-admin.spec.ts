@@ -168,13 +168,30 @@ async function gotoAdmin(page: Page) {
     await searchBox.click();
     await searchBox.clear();
     await searchBox.fill(email);
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(3000);
     
+    // Wait for table row to appear AND be stable
     const userRow = page.locator('table tbody tr').first();
-    await userRow.waitFor({ state: 'visible', timeout: 10000 });
+    await userRow.waitFor({ state: 'visible', timeout: 15000 });
+    await page.waitForTimeout(1000); // Extra wait for button to be ready
     
+    // Ensure delete button is visible and clickable before clicking
     const deleteBtn = userRow.locator('button').last();
-    await deleteBtn.click();
+    await deleteBtn.waitFor({ state: 'visible', timeout: 15000 });
+    
+    // Retry click if needed (for slow CI runners)
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        await deleteBtn.click({ timeout: 5000 });
+        break;
+      } catch (e) {
+        if (attempt < 2) {
+          await page.waitForTimeout(2000);
+        } else {
+          throw e;
+        }
+      }
+    }
     await page.waitForTimeout(1000);
     
     // Confirm deletion in modal
