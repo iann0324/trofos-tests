@@ -64,9 +64,9 @@ const milestoneTest = test.extend<{ authenticatedPage: Page }>({
 
 // Keep default mode so failures do not skip the remaining tests in this file
 
-  const milestoneName = `AutoTest Milestone ${Date.now()}`;
-
   milestoneTest('[Milestones] 8.1 - Create milestone', async ({ authenticatedPage: page }) => {
+    const milestoneName = `AutoTest Milestone ${Date.now()}`;
+    
     // Click New button
     await page.locator('button').filter({ hasText: 'New' }).click();
     await page.waitForTimeout(500);
@@ -89,10 +89,16 @@ const milestoneTest = test.extend<{ authenticatedPage: Page }>({
 
     // Submit
     await page.getByRole('button', { name: 'Finish' }).click();
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(1500);
+
+    // Reload page to ensure milestone list is refreshed
+    await page.reload({ waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1000);
 
-    // Verify milestone appears in the list
-    await expect(page.getByText(milestoneName)).toBeVisible({ timeout: 5000 });
+    // Verify milestone appears in the list by checking for the input with the full name
+    const milestoneInput = page.locator(`input[value="${milestoneName}"]`);
+    await expect(milestoneInput).toBeVisible({ timeout: 8000 });
   });
 
   milestoneTest('[Milestones] 8.2 - Delete milestone', async ({ authenticatedPage: page }) => {

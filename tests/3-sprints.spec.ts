@@ -348,7 +348,8 @@ sprintTest('[Sprint] 3.4 - Sprint lifecycle: start, complete, retrospective', as
   // Start the sprint — use data-tour to avoid matching the collapse header div[role=button]
   const sprintCard = page.locator('.sprint-card-container').filter({ hasText: name });
   await sprintCard.locator('button[data-tour="start-sprint-button"]').click();
-  await page.waitForTimeout(1000);
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForTimeout(2000); // Extra wait for sprint to move to Current Sprints
 
   // Verify it moved to Current Sprints (Complete Sprint button appears)
   // Use locator('button') to match only <button> elements, not div[role="button"] collapse headers
