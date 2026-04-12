@@ -78,11 +78,6 @@ const sprintTest = test.extend<{ authenticatedPage: Page }>({
 
 // Keep default mode so failures do not skip the remaining tests in this file
 
-// Best-effort cleanup even when a test fails midway on CI
-sprintTest.afterEach(async ({ authenticatedPage: page }) => {
-  await cleanupTestArtifacts(page);
-});
-
 // ============================================================================
 // HELPERS — each test creates its own data and cleans up after itself
 // ============================================================================
@@ -221,113 +216,13 @@ async function createBacklog(page: Page, title: string): Promise<void> {
 
 /** Delete a backlog item by title */
 async function deleteBacklog(page: Page, title: string): Promise<void> {
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      const backlogCard = page.locator('li.backlog-card-container').filter({ hasText: title }).first();
-      if (!(await backlogCard.isVisible({ timeout: 3000 }).catch(() => false))) {
-        return;
-      }
-
-      await backlogCard.locator('.backlog-card-id').click({ timeout: 5000 });
-      await backlogCard.locator('.backlog-menu-dropdown').click({ timeout: 5000 });
-      await page.waitForTimeout(300);
-      await page.locator('.ant-dropdown-menu-item-danger', { hasText: 'Delete backlog' }).click({ timeout: 5000 });
-      await page.locator('.ant-modal').filter({ hasText: 'DELETE BACKLOG' }).locator('button.ant-btn-dangerous').click({ timeout: 5000 });
-      await page.waitForTimeout(500);
-      await expect(page.locator('li.backlog-card-container').filter({ hasText: title })).not.toBeVisible({ timeout: 10000 });
-      return;
-    } catch {
-      await page.keyboard.press('Escape').catch(() => {});
-      await page.waitForTimeout(1000);
-    }
-  }
-}
-
-/** Delete an epic by name */
-async function deleteEpic(page: Page, name: string): Promise<void> {
-  const epicCard = page.locator('li.epic-card-container').filter({ hasText: name }).first();
-  if (!(await epicCard.isVisible({ timeout: 3000 }).catch(() => false))) {
-    return;
-  }
-
-  await epicCard.locator('.epic-menu-dropdown').click();
+  await page.locator('li.backlog-card-container', { hasText: title }).locator('.backlog-card-id').click();
+  await page.locator('.backlog-menu-dropdown').click();
   await page.waitForTimeout(300);
-  await page.locator('.ant-dropdown-menu-item-danger', { hasText: 'Delete epic' }).click();
-  await page.locator('.ant-modal button.ant-btn-dangerous').click();
+  await page.locator('.ant-dropdown-menu-item-danger', { hasText: 'Delete backlog' }).click();
+  await page.locator('.ant-modal').filter({ hasText: 'DELETE BACKLOG' }).locator('button.ant-btn-dangerous').click();
   await page.waitForTimeout(500);
-  await expect(page.locator('li.epic-card-container').filter({ hasText: name })).not.toBeVisible({ timeout: 5000 });
-}
-
-/** Remove leftover sprint/backlog/epic test data after failed or interrupted runs */
-async function cleanupTestArtifacts(page: Page): Promise<void> {
-  await page.keyboard.press('Escape').catch(() => {});
-
-  const sprintMenu = page.getByRole('menuitem', { name: 'Sprint' });
-  if (!/\/sprint/.test(page.url()) && await sprintMenu.isVisible({ timeout: 3000 }).catch(() => false)) {
-    await sprintMenu.click().catch(() => {});
-    await page.waitForLoadState('domcontentloaded').catch(() => {});
-    await page.waitForTimeout(500);
-  }
-
-  const sprintPrefixes = [
-    'AutoTest Sprint',
-    'Edit Sprint',
-    'Lifecycle Sprint',
-    'Search Sprint',
-    'Cancel Delete Sprint',
-    'Past Date Sprint',
-    'LongName',
-    'BoardTest Sprint',
-    'AAAA',
-  ];
-
-  for (const prefix of sprintPrefixes) {
-    let retries = 0;
-    while (retries < 10) {
-      const card = page.locator('.sprint-card-container').filter({ hasText: new RegExp(prefix) }).first();
-      const visible = await card.isVisible({ timeout: 2000 }).catch(() => false);
-      if (!visible) break;
-      try {
-        await deleteSprint(page, prefix);
-      } catch {
-        await page.keyboard.press('Escape').catch(() => {});
-        await page.reload({ waitUntil: 'domcontentloaded' }).catch(() => {});
-        await page.waitForTimeout(1000);
-      }
-      retries++;
-    }
-  }
-
-  const backlogPrefixes = ['AutoTest Issue', 'BoardTest Issue'];
-  for (const prefix of backlogPrefixes) {
-    let retries = 0;
-    while (retries < 10) {
-      const backlogCard = page.locator('li.backlog-card-container').filter({ hasText: prefix }).first();
-      const visible = await backlogCard.isVisible({ timeout: 2000 }).catch(() => false);
-      if (!visible) break;
-      try {
-        await deleteBacklog(page, prefix);
-      } catch {
-        await page.keyboard.press('Escape').catch(() => {});
-        await page.waitForTimeout(1000);
-      }
-      retries++;
-    }
-  }
-
-  let epicRetries = 0;
-  while (epicRetries < 10) {
-    const epicCard = page.locator('li.epic-card-container').filter({ hasText: 'AutoTest Epic' }).first();
-    const visible = await epicCard.isVisible({ timeout: 2000 }).catch(() => false);
-    if (!visible) break;
-    try {
-      await deleteEpic(page, 'AutoTest Epic');
-    } catch {
-      await page.keyboard.press('Escape').catch(() => {});
-      await page.waitForTimeout(1000);
-    }
-    epicRetries++;
-  }
+  await expect(page.locator('.backlog-card-summary', { hasText: title })).not.toBeVisible({ timeout: 5000 });
 }
 
 // ============================================================================
@@ -338,7 +233,30 @@ async function cleanupTestArtifacts(page: Page): Promise<void> {
 
 sprintTest('[Sprint] 3.0 - Cleanup leftover AutoTest data', async ({ authenticatedPage: page }) => {
   sprintTest.setTimeout(120_000);
-  await cleanupTestArtifacts(page);
+
+  // Delete any leftover sprints whose names start with known test prefixes
+  const prefixes = ['AutoTest', 'Edit Sprint', 'Lifecycle Sprint', 'Search Sprint', 'Cancel Delete Sprint', 'Past Date Sprint', 'AAAA'];
+
+  for (const prefix of prefixes) {
+    let retries = 0;
+    while (retries < 10) {
+      const card = page.locator('.sprint-card-container').filter({ hasText: new RegExp(`^.*${prefix}`) });
+      const visible = await card.first().isVisible({ timeout: 2000 }).catch(() => false);
+      if (!visible) break;
+      try {
+        await card.first().locator('.sprint-menu-dropdown').click({ timeout: 5000 });
+        await page.waitForTimeout(300);
+        await page.locator('.ant-dropdown-menu-item-danger', { hasText: 'Delete sprint' }).click({ timeout: 5000 });
+        await page.locator('.ant-modal').filter({ hasText: 'DELETE SPRINT' }).locator('button.ant-btn-dangerous').click({ timeout: 5000 });
+        await page.waitForTimeout(500);
+      } catch {
+        // Element may have been detached by another browser — reload and retry
+        await page.reload({ waitUntil: 'domcontentloaded' });
+        await page.waitForTimeout(1000);
+      }
+      retries++;
+    }
+  }
 });
 
 // --- 1. Sprint Creation and Management (md 1.1, 6.1) ------------------------
@@ -427,48 +345,24 @@ sprintTest('[Sprint] 3.4 - Sprint lifecycle: start, complete, retrospective', as
   // Create an upcoming sprint
   await createSprint(page, name);
 
-  // Start the sprint — the remote app can be slow to move it into Current Sprints on CI
-  const sprintCard = page.locator('.sprint-card-container').filter({ hasText: name }).first();
-  await expect(sprintCard).toBeVisible({ timeout: 10000 });
+  // Start the sprint — use data-tour to avoid matching the collapse header div[role=button]
+  const sprintCard = page.locator('.sprint-card-container').filter({ hasText: name });
   await sprintCard.locator('button[data-tour="start-sprint-button"]').click();
   await page.waitForLoadState('domcontentloaded');
-  await page.waitForTimeout(1500);
+  await page.waitForTimeout(2000); // Extra wait for sprint to move to Current Sprints
 
-  let completeButtonVisible = false;
-  for (let attempt = 0; attempt < 4; attempt++) {
-    const currentCard = page.locator('.sprint-card-container').filter({ hasText: name }).first();
-    const completeButton = currentCard.locator('button').filter({ hasText: 'Complete Sprint' });
-    completeButtonVisible = await completeButton.isVisible({ timeout: 4000 }).catch(() => false);
-    if (completeButtonVisible) {
-      await completeButton.click();
-      break;
-    }
+  // Verify it moved to Current Sprints (Complete Sprint button appears)
+  // Use locator('button') to match only <button> elements, not div[role="button"] collapse headers
+  await expect(
+    sprintCard.locator('button').filter({ hasText: 'Complete Sprint' })
+  ).toBeVisible({ timeout: 10000 });
 
-    if (attempt === 0) {
-      await page.getByRole('menuitem', { name: 'Overview' }).click();
-      await page.waitForLoadState('domcontentloaded');
-      await page.waitForTimeout(500);
-      await page.getByRole('menuitem', { name: 'Sprint' }).click();
-    } else {
-      await page.reload({ waitUntil: 'domcontentloaded' });
-    }
-    await page.waitForTimeout(2000);
-  }
-
-  expect(completeButtonVisible, 'Sprint did not expose the Complete Sprint button after retries').toBeTruthy();
+  // Complete the sprint
+  await sprintCard.locator('button').filter({ hasText: 'Complete Sprint' }).click();
   await page.waitForTimeout(1000);
 
   // Verify Retrospective button appears (now in Completed Sprints)
-  const completedCard = page.locator('.sprint-card-container').filter({ hasText: name }).first();
-  let retrospectiveVisible = false;
-  for (let attempt = 0; attempt < 4; attempt++) {
-    const retrospectiveButton = completedCard.locator('[data-tour="retrospective-tab"]');
-    retrospectiveVisible = await retrospectiveButton.isVisible({ timeout: 4000 }).catch(() => false);
-    if (retrospectiveVisible) break;
-    await page.reload({ waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(2000);
-  }
-
+  const completedCard = page.locator('.sprint-card-container').filter({ hasText: name });
   await expect(
     completedCard.locator('[data-tour="retrospective-tab"]')
   ).toBeVisible({ timeout: 10000 });
