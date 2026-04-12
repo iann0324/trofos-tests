@@ -64,44 +64,44 @@ const milestoneTest = test.extend<{ authenticatedPage: Page }>({
 
 // Keep default mode so failures do not skip the remaining tests in this file
 
-  milestoneTest('[Milestones] 8.1 - Create milestone', async ({ authenticatedPage: page }) => {
-    const milestoneName = `AutoTest Milestone ${Date.now()}`;
+  // milestoneTest('[Milestones] 8.1 - Create milestone', async ({ authenticatedPage: page }) => {
+  //   const milestoneName = `AutoTest Milestone ${Date.now()}`;
     
-    // Click New button
-    await page.locator('button').filter({ hasText: 'New' }).click();
-    await page.waitForTimeout(500);
+  //   // Click New button
+  //   await page.locator('button').filter({ hasText: 'New' }).click();
+  //   await page.waitForTimeout(500);
 
-    // Fill milestone name
-    await page.getByRole('textbox', { name: '* Milestone Name' }).fill(milestoneName);
+  //   // Fill milestone name
+  //   await page.getByRole('textbox', { name: '* Milestone Name' }).fill(milestoneName);
 
-    // Open the date range picker and select start + end dates
-    // Use specific selector to avoid strict mode violation (existing milestone cards also have .ant-picker)
-    await page.locator('.ant-form-item-control-input-content > .ant-picker').click();
-    await page.waitForTimeout(300);
+  //   // Open the date range picker and select start + end dates
+  //   // Use specific selector to avoid strict mode violation (existing milestone cards also have .ant-picker)
+  //   await page.locator('.ant-form-item-control-input-content > .ant-picker').click();
+  //   await page.waitForTimeout(300);
 
-    // Pick start date: click the first "1" in the visible calendar
-    await page.locator('.ant-picker-cell-inner').getByText('1', { exact: true }).first().click();
-    await page.waitForTimeout(300);
+  //   // Pick start date: click the first "1" in the visible calendar
+  //   await page.locator('.ant-picker-cell-inner').getByText('1', { exact: true }).first().click();
+  //   await page.waitForTimeout(300);
 
-    // Pick end date: click "28" (safe last day that exists in every month)
-    await page.locator('.ant-picker-cell-inner').getByText('28', { exact: true }).last().click();
-    await page.waitForTimeout(300);
+  //   // Pick end date: click "28" (safe last day that exists in every month)
+  //   await page.locator('.ant-picker-cell-inner').getByText('28', { exact: true }).last().click();
+  //   await page.waitForTimeout(300);
 
-    // Submit
-    await page.getByRole('button', { name: 'Finish' }).click();
-    await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(1500);
+  //   // Submit
+  //   await page.getByRole('button', { name: 'Finish' }).click();
+  //   await page.waitForLoadState('domcontentloaded');
+  //   await page.waitForTimeout(1500);
 
-    // Reload page to ensure milestone list is refreshed
-    await page.reload({ waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(1000);
+  //   // Reload page to ensure milestone list is refreshed
+  //   await page.reload({ waitUntil: 'domcontentloaded' });
+  //   await page.waitForTimeout(1000);
 
-    // Verify milestone appears in the list by checking for the input with the full name
-    const milestoneInput = page.locator(`input[value="${milestoneName}"]`);
-    await expect(milestoneInput).toBeVisible({ timeout: 8000 });
-  });
+  //   // Verify milestone appears in the list by checking for the input with the full name
+  //   const milestoneInput = page.locator(`input[value="${milestoneName}"]`);
+  //   await expect(milestoneInput).toBeVisible({ timeout: 8000 });
+  // });
 
-  milestoneTest('[Milestones] 8.2 - Delete milestone', async ({ authenticatedPage: page }) => {
+  milestoneTest('[Milestones] 8.1 - Create and Delete milestone', async ({ authenticatedPage: page }) => {
     // Self-contained: create a milestone then delete it.
     // Cannot rely on 8.1's milestoneName — fullyParallel workers each get their own Date.now() value.
     const deleteTargetName = `AutoTest Milestone ${Date.now()}`;
